@@ -2,16 +2,16 @@
 
 import React, { useCallback } from "react"
 import ReactFlow, {
-  MiniMap,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  Node,
-  Edge,
-  Connection,
-  ReactFlowProvider,
+    MiniMap,
+    Controls,
+    Background,
+    useNodesState,
+    useEdgesState,
+    addEdge,
+    Node,
+    Edge,
+    Connection,
+    ReactFlowProvider, BackgroundVariant,
 } from "reactflow"
 import "reactflow/dist/style.css"
 
@@ -331,7 +331,7 @@ function RoadmapFlow() {
         }}
         maskColor="rgba(255, 255, 255, 0.8)"
       />
-      <Background variant="dots" gap={20} size={1} color="#e2e8f0" />
+      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e8f0" />
     </ReactFlow>
   )
 }
