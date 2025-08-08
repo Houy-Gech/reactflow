@@ -14,7 +14,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Download } from 'lucide-react'
-import { ViewOnlyMilestoneNode } from "../../components/view-only-milestone-node"
+import { ViewOnlyMilestoneNode } from "@/components/view-only-milestone-node"
 import Link from "next/link"
 
 const nodeTypes: NodeTypes = {
