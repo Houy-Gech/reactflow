@@ -17,61 +17,73 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { Button } from "@/components/ui/button"
 import { Plus, Download, Upload, RotateCcw, Eye } from 'lucide-react'
-import { MilestoneData } from "./types"
+import { CourseData } from "./types"
 import { RoadmapProvider } from "./contexts/roadmap-context"
 import Link from 'next/link'
 import {useRoadmapStorage} from "@/hooks/use-roadmap-storage";
-import {MilestoneNode} from "@/components/milestone-node";
-import {MilestoneForm} from "@/components/milestone-form";
+import {CourseForm} from "@/components/course-form";
+import {CourseNode} from "@/components/course-node";
 
 const nodeTypes: NodeTypes = {
-    milestone: MilestoneNode,
+    course: CourseNode,
 }
 
 const initialNodes: Node[] = [
     {
         id: "1",
-        type: "milestone",
+        type: "course",
         data: {
-            label: "Project Kickoff",
-            description: "Initial planning and team setup",
-            status: "completed",
-            quarter: "Q1 2024",
-            assignee: "John Doe",
-            progress: 100,
+            id_courses: 1001,
+            course_thumbnail_url: "",
+            typer_Courses: 1,
+            duration_Courses: 40.5,
+            time_create: "2024-01-15",
+            subject: ["Frontend Development", "Web Development", "Programming Languages"],
+            name_over: "John Smith",
+            bg: "completed",
+            node_width: 280,
+            node_height: 200,
         },
         position: { x: 100, y: 100 },
     },
     {
         id: "2",
-        type: "milestone",
+        type: "course",
         data: {
-            label: "Market Research",
-            description: "Competitive analysis and user surveys",
-            status: "completed",
-            quarter: "Q1 2024",
-            assignee: "Jane Smith",
-            progress: 100,
+            id_courses: 1002,
+            course_thumbnail_url: "",
+            typer_Courses: 3,
+            duration_Courses: 60.0,
+            time_create: "2024-02-01",
+            subject: ["Frontend Development", "Frameworks & Libraries", "Software Engineering"],
+            name_over: "Sarah Johnson",
+            bg: "in-progress",
+            node_width: 320,
+            node_height: 240,
         },
-        position: { x: 100, y: 250 },
+        position: { x: 400, y: 100 },
     },
     {
         id: "3",
-        type: "milestone",
+        type: "course",
         data: {
-            label: "Beta Testing",
-            description: "User feedback and bug fixes",
-            status: "in-progress",
-            quarter: "Q2 2024",
-            assignee: "Mike Johnson",
-            progress: 65,
+            id_courses: 1003,
+            course_thumbnail_url: "",
+            typer_Courses: 4,
+            duration_Courses: 120.0,
+            time_create: "2024-03-01",
+            subject: ["Full Stack Development", "Backend Development", "Database Management", "DevOps"],
+            name_over: "Mike Davis",
+            bg: "planned",
+            node_width: 350,
+            node_height: 280,
         },
-        position: { x: 400, y: 175 },
+        position: { x: 750, y: 100 },
     },
 ]
 
 const initialEdges: Edge[] = [
-    { id: "e1-3", source: "1", target: "3", animated: true },
+    { id: "e1-2", source: "1", target: "2", animated: true },
     { id: "e2-3", source: "2", target: "3", animated: true },
 ]
 
@@ -89,6 +101,7 @@ function DynamicRoadmapFlow() {
     const { data: savedData, saveData, clearData } = useRoadmapStorage()
     const [showForm, setShowForm] = useState(false)
     const [editingNode, setEditingNode] = useState<Node | null>(null)
+    const [selectedNodes, setSelectedNodes] = useState<string[]>([])
     const [nextId, setNextId] = useState(4)
     const saveTimeoutRef = useRef<NodeJS.Timeout>(null)
 
@@ -100,7 +113,27 @@ function DynamicRoadmapFlow() {
         savedData.edges.length > 0 ? savedData.edges : initialEdges
     )
 
-    // Debounced save to prevent excessive localStorage writes
+    // Handle node selection
+    const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+        if (event.ctrlKey || event.metaKey) {
+            // Multi-select with Ctrl/Cmd
+            setSelectedNodes(prev =>
+                prev.includes(node.id)
+                    ? prev.filter(id => id !== node.id)
+                    : [...prev, node.id]
+            )
+        } else {
+            // Single select
+            setSelectedNodes([node.id])
+        }
+    }, [])
+
+    // Clear selection when clicking on pane
+    const handlePaneClick = useCallback(() => {
+        setSelectedNodes([])
+    }, [])
+
+    // Debounced save with longer timeout to prevent ResizeObserver issues
     useEffect(() => {
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current)
@@ -108,9 +141,16 @@ function DynamicRoadmapFlow() {
 
         saveTimeoutRef.current = setTimeout(() => {
             if (nodes.length > 0 || edges.length > 0) {
-                saveData(nodes, edges)
+                // Use requestIdleCallback if available to avoid blocking
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(() => {
+                        saveData(nodes, edges)
+                    })
+                } else {
+                    saveData(nodes, edges)
+                }
             }
-        }, 500)
+        }, 2000) // Increased timeout to reduce frequency
 
         return () => {
             if (saveTimeoutRef.current) {
@@ -134,19 +174,28 @@ function DynamicRoadmapFlow() {
     const handleDeleteNode = useCallback((nodeId: string) => {
         setNodes((nds) => nds.filter((n) => n.id !== nodeId))
         setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId))
+        setSelectedNodes(prev => prev.filter(id => id !== nodeId))
     }, [setNodes, setEdges])
 
-    const getNodeStyle = (status: string) => {
-        switch (status) {
-            case 'completed': return { background: '#10b981', border: '2px solid #059669' }
-            case 'in-progress': return { background: '#f59e0b', border: '2px solid #d97706' }
-            case 'planned': return { background: '#6366f1', border: '2px solid #4f46e5' }
-            case 'future': return { background: '#64748b', border: '2px solid #475569' }
-            default: return { background: '#64748b', border: '2px solid #475569' }
-        }
-    }
+    const getNodeStyle = useCallback((bg: string, width?: number, height?: number) => {
+        const backgroundColor = (() => {
+            switch (bg) {
+                case 'completed': return '#10b981'
+                case 'in-progress': return '#f59e0b'
+                case 'planned': return '#6366f1'
+                case 'future': return '#64748b'
+                default: return '#64748b'
+            }
+        })()
 
-    const handleSaveMilestone = (milestoneData: MilestoneData) => {
+        return {
+            background: backgroundColor,
+            width: width || 280,
+            height: height || 200,
+        }
+    }, [])
+
+    const handleSaveCourse = useCallback((courseData: CourseData) => {
         if (editingNode) {
             // Update existing node
             setNodes((nds) =>
@@ -154,8 +203,8 @@ function DynamicRoadmapFlow() {
                     node.id === editingNode.id
                         ? {
                             ...node,
-                            data: milestoneData,
-                            style: getNodeStyle(milestoneData.status),
+                            data: courseData,
+                            style: getNodeStyle(courseData.bg || 'planned', courseData.node_width, courseData.node_height),
                         }
                         : node
                 )
@@ -164,30 +213,30 @@ function DynamicRoadmapFlow() {
             // Add new node
             const newNode: Node = {
                 id: nextId.toString(),
-                type: "milestone",
-                data: milestoneData,
+                type: "course",
+                data: courseData,
                 position: { x: Math.random() * 500 + 100, y: Math.random() * 300 + 100 },
-                style: getNodeStyle(milestoneData.status),
+                style: getNodeStyle(courseData.bg || 'planned', courseData.node_width, courseData.node_height),
             }
             setNodes((nds) => [...nds, newNode])
             setNextId(nextId + 1)
         }
         setShowForm(false)
         setEditingNode(null)
-    }
+    }, [editingNode, nextId, getNodeStyle, setNodes])
 
-    const handleExportData = () => {
+    const handleExportData = useCallback(() => {
         const dataStr = JSON.stringify({ nodes, edges }, null, 2)
         const dataBlob = new Blob([dataStr], { type: 'application/json' })
         const url = URL.createObjectURL(dataBlob)
         const link = document.createElement('a')
         link.href = url
-        link.download = 'roadmap-data.json'
+        link.download = 'course-roadmap-data.json'
         link.click()
         URL.revokeObjectURL(url)
-    }
+    }, [nodes, edges])
 
-    const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImportData = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
         if (file) {
             const reader = new FileReader()
@@ -204,39 +253,33 @@ function DynamicRoadmapFlow() {
             }
             reader.readAsText(file)
         }
-    }
+    }, [setNodes, setEdges])
 
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         if (confirm('Are you sure you want to reset the roadmap? This will clear all data.')) {
             clearData()
             setNodes(initialNodes)
             setEdges(initialEdges)
             setNextId(4)
+            setSelectedNodes([])
         }
-    }
+    }, [clearData, setNodes, setEdges])
 
-    const contextValue = {
+    // Memoize nodes with selection to prevent unnecessary re-renders
+    const nodesWithSelection = React.useMemo(() =>
+        nodes.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                selected: selectedNodes.includes(node.id)
+            }
+        })), [nodes, selectedNodes]
+    )
+
+    const contextValue = React.useMemo(() => ({
         onEditNode: handleEditNode,
         onDeleteNode: handleDeleteNode,
-    }
-
-    const getViewOnlyData = () => {
-        return {
-            nodes: nodes.map(node => ({
-                ...node,
-                draggable: false,
-                selectable: false,
-                data: {
-                    ...node.data,
-                    viewOnly: true
-                }
-            })),
-            edges: edges.map(edge => ({
-                ...edge,
-                selectable: false
-            }))
-        }
-    }
+    }), [handleEditNode, handleDeleteNode])
 
     return (
         <RoadmapProvider value={contextValue}>
@@ -244,23 +287,23 @@ function DynamicRoadmapFlow() {
                 {/* Header */}
                 <div className="p-4 bg-white shadow-sm border-b flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Dynamic Product Roadmap</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">Course Learning Roadmap</h1>
                         <div className="flex gap-6 mt-2 text-sm">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span>Completed</span>
+                                <span>Green Background</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                                <span>In Progress</span>
+                                <span>Amber Background</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                                <span>Planned</span>
+                                <span>Indigo Background</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-slate-500 rounded-full"></div>
-                                <span>Future</span>
+                                <span>Slate Background</span>
                             </div>
                         </div>
                     </div>
@@ -268,7 +311,7 @@ function DynamicRoadmapFlow() {
                     <div className="flex gap-2">
                         <Button onClick={() => setShowForm(true)} size="sm">
                             <Plus className="h-4 w-4 mr-2" />
-                            Add Milestone
+                            Add Course
                         </Button>
                         <Button onClick={handleExportData} variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-2" />
@@ -302,9 +345,9 @@ function DynamicRoadmapFlow() {
                 {/* Form Modal */}
                 {showForm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <MilestoneForm
-                            milestone={editingNode?.data}
-                            onSave={handleSaveMilestone}
+                        <CourseForm
+                            course={editingNode?.data}
+                            onSave={handleSaveCourse}
                             onCancel={() => {
                                 setShowForm(false)
                                 setEditingNode(null)
@@ -316,16 +359,19 @@ function DynamicRoadmapFlow() {
                 {/* ReactFlow */}
                 <div className="flex-1">
                     <ReactFlow
-                        nodes={nodes}
+                        nodes={nodesWithSelection}
                         edges={edges}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
+                        onNodeClick={handleNodeClick}
+                        onPaneClick={handlePaneClick}
                         nodeTypes={nodeTypes}
                         fitView
                         fitViewOptions={{ padding: 0.2 }}
                         minZoom={0.3}
                         maxZoom={2}
+                        selectNodesOnDrag={false}
                         defaultEdgeOptions={{
                             animated: true,
                             style: { strokeWidth: 2 },
@@ -334,8 +380,8 @@ function DynamicRoadmapFlow() {
                         <Controls />
                         <MiniMap
                             nodeColor={(node) => {
-                                const status = node.data?.status || 'future'
-                                switch (status) {
+                                const bg = node.data?.bg || 'future'
+                                switch (bg) {
                                     case 'completed': return '#10b981'
                                     case 'in-progress': return '#f59e0b'
                                     case 'planned': return '#6366f1'

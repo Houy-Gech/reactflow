@@ -1,24 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import ReactFlow, {
     MiniMap,
     Controls,
     Background,
-    Node,
-    Edge,
+    type Node,
+    type Edge,
     ReactFlowProvider,
-    NodeTypes, BackgroundVariant,
+    type NodeTypes, BackgroundVariant,
 } from "reactflow"
 import "reactflow/dist/style.css"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download } from 'lucide-react'
-import { ViewOnlyMilestoneNode } from "@/components/view-only-milestone-node"
+import { ArrowLeft, Download } from "lucide-react"
+import { ViewOnlyCourseNode } from "../../components/view-only-course-node"
 import Link from "next/link"
 
 const nodeTypes: NodeTypes = {
-    milestone: ViewOnlyMilestoneNode,
+    course: ViewOnlyCourseNode,
 }
 
 export default function ViewOnlyRoadmap() {
@@ -28,50 +28,79 @@ export default function ViewOnlyRoadmap() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    // Memoize the processed nodes and edges to prevent re-processing
+    const processedData = useMemo(() => {
+        if (nodes.length === 0 && edges.length === 0) return null
+
+        // Convert nodes to view-only format
+        const viewOnlyNodes = nodes.map((node: Node) => ({
+            ...node,
+            type: "course",
+            draggable: false,
+            selectable: false,
+            data: {
+                ...node.data,
+                viewOnly: true,
+            },
+        }))
+
+        const viewOnlyEdges = edges.map((edge: Edge) => ({
+            ...edge,
+            selectable: false,
+        }))
+
+        return { nodes: viewOnlyNodes, edges: viewOnlyEdges }
+    }, [nodes, edges])
+
     useEffect(() => {
+        let isMounted = true
+
         const loadData = async () => {
             try {
+                setLoading(true)
+                setError(null)
+
                 // Load from localStorage
-                const saved = localStorage.getItem('roadmap-data')
-                if (saved) {
+                const saved = localStorage.getItem("roadmap-data")
+                if (saved && isMounted) {
                     const data = JSON.parse(saved)
-                    // Convert nodes to view-only format
-                    const viewOnlyNodes = data.nodes.map((node: Node) => ({
-                        ...node,
-                        draggable: false,
-                        selectable: false,
-                        data: {
-                            ...node.data,
-                            viewOnly: true
-                        }
-                    }))
-                    const viewOnlyEdges = data.edges.map((edge: Edge) => ({
-                        ...edge,
-                        selectable: false
-                    }))
-                    setNodes(viewOnlyNodes)
-                    setEdges(viewOnlyEdges)
-                } else {
-                    setError('No roadmap data found. Please create a roadmap first.')
+                    if (data.nodes && data.edges) {
+                        setNodes(data.nodes)
+                        setEdges(data.edges)
+                    } else {
+                        setError("Invalid roadmap data format.")
+                    }
+                } else if (isMounted) {
+                    setError("No roadmap data found. Please create a roadmap first.")
                 }
             } catch (err) {
-                setError('Failed to load roadmap data')
-                console.error('Error loading data:', err)
+                if (isMounted) {
+                    setError("Failed to load roadmap data")
+                    console.error("Error loading data:", err)
+                }
             } finally {
-                setLoading(false)
+                if (isMounted) {
+                    setLoading(false)
+                }
             }
         }
 
         loadData()
-    }, [searchParams])
+
+        return () => {
+            isMounted = false
+        }
+    }, []) // Remove searchParams dependency to prevent re-runs
 
     const handleExportData = () => {
-        const dataStr = JSON.stringify({ nodes, edges }, null, 2)
-        const dataBlob = new Blob([dataStr], { type: 'application/json' })
+        if (!processedData) return
+
+        const dataStr = JSON.stringify(processedData, null, 2)
+        const dataBlob = new Blob([dataStr], { type: "application/json" })
         const url = URL.createObjectURL(dataBlob)
-        const link = document.createElement('a')
+        const link = document.createElement("a")
         link.href = url
-        link.download = 'roadmap-view-only.json'
+        link.download = "roadmap-view-only.json"
         link.click()
         URL.revokeObjectURL(url)
     }
@@ -141,7 +170,7 @@ export default function ViewOnlyRoadmap() {
                                 Back to Editor
                             </Button>
                         </Link>
-                        <Button onClick={handleExportData} variant="outline" size="sm">
+                        <Button onClick={handleExportData} variant="outline" size="sm" disabled={!processedData}>
                             <Download className="h-4 w-4 mr-2" />
                             Export Data
                         </Button>
@@ -150,10 +179,10 @@ export default function ViewOnlyRoadmap() {
 
                 {/* ReactFlow - View Only */}
                 <div className="flex-1">
-                    {nodes.length > 0 ? (
+                    {processedData && processedData.nodes.length > 0 ? (
                         <ReactFlow
-                            nodes={nodes}
-                            edges={edges}
+                            nodes={processedData.nodes}
+                            edges={processedData.edges}
                             nodeTypes={nodeTypes}
                             fitView
                             fitViewOptions={{ padding: 0.2 }}
@@ -173,13 +202,18 @@ export default function ViewOnlyRoadmap() {
                             <Controls showInteractive={false} />
                             <MiniMap
                                 nodeColor={(node) => {
-                                    const status = node.data?.status || 'future'
+                                    const status = node.data?.bg || "future"
                                     switch (status) {
-                                        case 'completed': return '#10b981'
-                                        case 'in-progress': return '#f59e0b'
-                                        case 'planned': return '#6366f1'
-                                        case 'future': return '#64748b'
-                                        default: return '#64748b'
+                                        case "completed":
+                                            return "#10b981"
+                                        case "in-progress":
+                                            return "#f59e0b"
+                                        case "planned":
+                                            return "#6366f1"
+                                        case "future":
+                                            return "#64748b"
+                                        default:
+                                            return "#64748b"
                                     }
                                 }}
                                 maskColor="rgba(255, 255, 255, 0.8)"
