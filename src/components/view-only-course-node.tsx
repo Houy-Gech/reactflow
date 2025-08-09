@@ -42,12 +42,18 @@ export function ViewOnlyCourseNode({ data }: ViewOnlyCourseNodeProps) {
         const nodeWidth = data.node_width || 280
         const nodeHeight = data.node_height || 200
 
+        // Calculate max subjects based on node height
+        // Estimated height for header, labels, and footer badges: ~114px
+        // Estimated height per subject list item (text-xs + space-y-0.5): ~18px
+        const availableSubjectHeight = nodeHeight - 114
+        const maxSubjects = Math.max(0, Math.floor(availableSubjectHeight / 18))
+
         return {
             backgroundColor: getBackgroundColor(data.bg || "planned"),
             courseTypeLabel: getCourseTypeLabel(data.typer_Courses),
             nodeWidth,
             nodeHeight,
-            maxSubjects: nodeWidth > 300 ? 4 : 2,
+            maxSubjects,
             showOwner: data.name_over && nodeWidth > 250,
             showDate: nodeHeight > 160,
             inputHandles: data.input_handles || 1,

@@ -119,6 +119,12 @@ export function CourseNode({ id, data, selected }: CourseNodeProps) {
 
     const outputHandleConfigs = getOutputHandleConfig(outputHandles)
 
+    // Calculate max subjects based on node height
+    // Estimated height for header, labels, and footer badges: ~114px
+    // Estimated height per subject list item (text-xs + space-y-0.5): ~18px
+    const availableSubjectHeight = currentDimensions.height - 114
+    const maxSubjects = Math.max(0, Math.floor(availableSubjectHeight / 18))
+
     return (
         <div
             className={`${getBackgroundColor(data.bg || "planned")} text-white rounded-lg p-3 shadow-lg border-2 overflow-hidden relative group ${
@@ -184,13 +190,13 @@ export function CourseNode({ id, data, selected }: CourseNodeProps) {
                         <span className="font-medium">Subjects:</span>
                     </div>
                     <ul className="list-disc list-inside text-xs pl-2 space-y-0.5">
-                        {data.subject.slice(0, currentDimensions.width > 300 ? 4 : 2).map((subject) => (
+                        {data.subject.slice(0, maxSubjects).map((subject) => (
                             <li key={subject} className="truncate">
                                 {subject}
                             </li>
                         ))}
-                        {data.subject.length > (currentDimensions.width > 300 ? 4 : 2) && (
-                            <li className="text-gray-200">+{data.subject.length - (currentDimensions.width > 300 ? 4 : 2)} more</li>
+                        {data.subject.length > maxSubjects && (
+                            <li className="text-white/80">+{data.subject.length - maxSubjects} more</li>
                         )}
                     </ul>
                 </div>
