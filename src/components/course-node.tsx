@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash2, User, Calendar, Clock, Hash, BookOpen } from "lucide-react"
 import type { CourseData } from "../../types"
+import { useRoadmapContext } from "../../contexts/roadmap-context"
 import { useCallback, useMemo } from "react"
-import {useRoadmapContext} from "../../contexts/roadmap-context";
 
 interface CourseNodeProps {
     id: string
@@ -43,18 +43,6 @@ export function CourseNode({ id, data, selected }: CourseNodeProps) {
         return types[type as keyof typeof types] || "Unknown"
     }, [])
 
-    const getSubjectColors = useCallback((index: number) => {
-        const colors = [
-            "bg-blue-100 text-blue-800",
-            "bg-green-100 text-green-800",
-            "bg-purple-100 text-purple-800",
-            "bg-orange-100 text-orange-800",
-            "bg-pink-100 text-pink-800",
-            "bg-cyan-100 text-cyan-800",
-        ]
-        return colors[index % colors.length]
-    }, [])
-
     // Memoize current dimensions to prevent unnecessary recalculations
     const currentDimensions = useMemo(() => {
         return { width: data.node_width || 280, height: data.node_height || 200 }
@@ -78,12 +66,6 @@ export function CourseNode({ id, data, selected }: CourseNodeProps) {
     const getVerticalHandlePosition = (index: number, total: number, nodeHeight: number) => {
         if (total === 1) return nodeHeight / 2
         const spacing = nodeHeight / (total + 1)
-        return spacing * (index + 1)
-    }
-
-    const getHorizontalHandlePosition = (index: number, total: number, nodeWidth: number) => {
-        if (total === 1) return nodeWidth / 2
-        const spacing = nodeWidth / (total + 1)
         return spacing * (index + 1)
     }
 
@@ -201,22 +183,16 @@ export function CourseNode({ id, data, selected }: CourseNodeProps) {
                         <BookOpen className="h-3 w-3 flex-shrink-0" />
                         <span className="font-medium">Subjects:</span>
                     </div>
-                    <div className="flex flex-wrap gap-1 overflow-hidden">
-                        {data.subject.slice(0, currentDimensions.width > 300 ? 4 : 2).map((subject, index) => (
-                            <Badge
-                                key={subject}
-                                className={`text-xs px-2 py-0 ${getSubjectColors(index)} border-0 truncate max-w-full`}
-                                title={subject}
-                            >
+                    <ul className="list-disc list-inside text-xs pl-2 space-y-0.5">
+                        {data.subject.slice(0, currentDimensions.width > 300 ? 4 : 2).map((subject) => (
+                            <li key={subject} className="truncate">
                                 {subject}
-                            </Badge>
+                            </li>
                         ))}
                         {data.subject.length > (currentDimensions.width > 300 ? 4 : 2) && (
-                            <Badge className="text-xs px-2 py-0 bg-gray-100 text-gray-800 border-0">
-                                +{data.subject.length - (currentDimensions.width > 300 ? 4 : 2)}
-                            </Badge>
+                            <li className="text-gray-200">+{data.subject.length - (currentDimensions.width > 300 ? 4 : 2)} more</li>
                         )}
-                    </div>
+                    </ul>
                 </div>
 
                 <div className="flex flex-wrap gap-1 text-xs flex-shrink-0">

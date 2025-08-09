@@ -39,25 +39,12 @@ export function ViewOnlyCourseNode({ data }: ViewOnlyCourseNodeProps) {
             return types[type as keyof typeof types] || "Unknown"
         }
 
-        const getSubjectColors = (index: number) => {
-            const colors = [
-                "bg-blue-100 text-blue-800",
-                "bg-green-100 text-green-800",
-                "bg-purple-100 text-purple-800",
-                "bg-orange-100 text-orange-800",
-                "bg-pink-100 text-pink-800",
-                "bg-cyan-100 text-cyan-800",
-            ]
-            return colors[index % colors.length]
-        }
-
         const nodeWidth = data.node_width || 280
         const nodeHeight = data.node_height || 200
 
         return {
             backgroundColor: getBackgroundColor(data.bg || "planned"),
             courseTypeLabel: getCourseTypeLabel(data.typer_Courses),
-            getSubjectColors,
             nodeWidth,
             nodeHeight,
             maxSubjects: nodeWidth > 300 ? 4 : 2,
@@ -192,22 +179,16 @@ export function ViewOnlyCourseNode({ data }: ViewOnlyCourseNodeProps) {
                         <BookOpen className="h-3 w-3 flex-shrink-0" />
                         <span className="font-medium">Subjects:</span>
                     </div>
-                    <div className="flex flex-wrap gap-1 overflow-hidden">
-                        {data.subject.slice(0, nodeConfig.maxSubjects).map((subject, index) => (
-                            <Badge
-                                key={subject}
-                                className={`text-xs px-2 py-0 ${nodeConfig.getSubjectColors(index)} border-0 truncate max-w-full`}
-                                title={subject}
-                            >
+                    <ul className="list-disc list-inside text-xs pl-2 space-y-0.5">
+                        {data.subject.slice(0, nodeConfig.maxSubjects).map((subject) => (
+                            <li key={subject} className="truncate">
                                 {subject}
-                            </Badge>
+                            </li>
                         ))}
                         {data.subject.length > nodeConfig.maxSubjects && (
-                            <Badge className="text-xs px-2 py-0 bg-gray-100 text-gray-800 border-0">
-                                +{data.subject.length - nodeConfig.maxSubjects}
-                            </Badge>
+                            <li className="text-gray-200">+{data.subject.length - nodeConfig.maxSubjects} more</li>
                         )}
-                    </div>
+                    </ul>
                 </div>
 
                 <div className="flex flex-wrap gap-1 text-xs flex-shrink-0">
